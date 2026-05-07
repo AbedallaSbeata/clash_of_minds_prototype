@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>صراع العقول – Clash of Minds</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=11" />
+</head>
+<body>
+<div id="app-scale-wrapper">
+
+<!-- ===== SCREENS ===== -->
+
+<!-- SPLASH -->
+<div id="screen-splash" class="screen active">
+  <div class="splash-bg">
+    <div class="particle" style="--x:10%;--y:20%;--s:1.2;--d:6s"></div>
+    <div class="particle" style="--x:80%;--y:15%;--s:0.8;--d:8s"></div>
+    <div class="particle" style="--x:50%;--y:70%;--s:1.5;--d:5s"></div>
+    <div class="particle" style="--x:25%;--y:55%;--s:1;--d:7s"></div>
+    <div class="particle" style="--x:70%;--y:80%;--s:0.6;--d:9s"></div>
+    <div class="particle" style="--x:90%;--y:45%;--s:1.3;--d:4s"></div>
+    <div class="particle" style="--x:5%;--y:85%;--s:0.9;--d:6.5s"></div>
+  </div>
+  <div class="splash-content">
+    <div class="logo-container">
+      <div class="logo-glow"></div>
+      <div class="logo-icon">🧠</div>
+      <h1 class="logo-title">صراع العقول</h1>
+      <p class="logo-subtitle">Clash of Minds</p>
+      <p class="logo-tagline">تحدّى العالم — بدهائك</p>
+    </div>
+    <button class="btn-primary btn-xl pulse-btn" onclick="showScreen('screen-home')">
+      <span>ابدأ اللعب</span>
+      <span class="btn-arrow">←</span>
+    </button>
+    <p class="splash-version">نسخة تجريبية · Prototype v0.1</p>
+  </div>
+</div>
+
+<!-- MAIN HOME (LOBBY) -->
+<div id="screen-home" class="screen pubg-theme">
+  <!-- Top Bar -->
+  <div class="pubg-top-bar">
+    <div class="pubg-profile" onclick="showScreen('screen-profile')">
+      <div class="pubg-avatar" id="pubg-avatar">أ</div>
+      <div class="pubg-info">
+        <span class="pubg-name">أحمد</span>
+        <span class="pubg-level">Lv. 8</span>
+      </div>
+    </div>
+    <div class="pubg-top-right">
+      <div class="coins-badge"><span class="coin-icon">🪙</span><span id="lobby-coins">9999</span></div>
+    </div>
+  </div>
+
+  <!-- Room Header -->
+  <div class="lobby-room-header">
+    <div class="lobby-room-label">غرفة الانتظار</div>
+    <div class="lobby-room-code-badge">🔑 A7K9</div>
+  </div>
+
+  <!-- Players Grid -->
+  <div class="lobby-players-grid" id="pubg-stage">
+    <!-- YOU -->
+    <div class="lobby-player-card you pubg-character" id="lobby-card-you">
+      <div class="lpc-leader" id="leader-badge-you">👑</div>
+      <div class="lpc-avatar-wrap">
+        <div class="lpc-avatar" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6)">أ</div>
+        <span class="lpc-online-dot"></span>
+      </div>
+      <div class="lpc-name ">أحمد</div>
+      <div class="lpc-you-tag">أنت</div>
+      <span class="lpc-ready " id="ready-check-you" onclick="toggleReadySelf()"></span>
+    </div>
+
+    <!-- Slot 2 -->
+    <div class="lobby-player-card pubg-character" id="pubg-char-2" style="display:none"></div>
+    <!-- Slot 3 -->
+    <div class="lobby-player-card pubg-character" id="pubg-char-3" style="display:none"></div>
+    <!-- Slot 4 -->
+    <div class="lobby-player-card pubg-character" id="pubg-char-4" style="display:none"></div>
+  </div>
+
+  <!-- Bottom Panel -->
+  <div class="lobby-bottom-panel">
+    <!-- Friends toggle -->
+    <button class="lobby-friends-btn" onclick="toggleFriendsSidebar()">
+      <span>👥</span><span>الأصدقاء</span><span class="f-online-count">3 متصل</span>
+    </button>
+
+    <!-- Mode Card -->
+    <div class="lobby-mode-card">
+      <div class="lmc-left">
+        <div class="lmc-icon">🧩</div>
+        <div>
+          <div class="lmc-title" id="room-mode-label">كلمات كراش</div>
+          <div class="lmc-sub">تحدي السرعة والذكاء</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools -->
+    <div class="lobby-tools-row">
+      <button class="lobby-tool-btn" id="mic-btn" onclick="toggleMic()">🎤</button>
+      <button class="lobby-tool-btn" id="speaker-btn" onclick="toggleSpeaker()">🔊</button>
+      <button class="lobby-tool-btn" onclick="toggleChat()">💬</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="lobby-action-row">
+      <button class="lobby-find-btn" onclick="handleFindEnemies()" id="find-enemies-btn">🔍 بحث عن خصوم</button>
+      <button class="lobby-start-btn" onclick="handleMainAction()" id="main-action-btn">جاهز<br><small>READY</small></button>
+    </div>
+  </div>
+</div> <!-- End of screen-home -->
+
+  <!-- Friends Sidebar (slide-over) -->
+  <div class="friends-sidebar-overlay" id="friends-overlay" onclick="toggleFriendsSidebar()"></div>
+  <div class="pubg-friends-sidebar" id="friends-sidebar">
+    <div class="friends-header">الأصدقاء (3/15 متصل)
+      <button onclick="toggleFriendsSidebar()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.4rem;line-height:1">✕</button>
+    </div>
+    <div class="friends-list">
+      <div class="friend-item">
+        <div class="f-avatar">س</div>
+        <div class="f-details"><span class="f-name">سالم</span><span class="f-status online" id="status-s">متصل</span></div>
+        <div class="f-action" id="action-s"><button class="f-invite-btn" onclick="inviteSpecificFriend('سالم','س','s')">+</button></div>
+      </div>
+      <div class="friend-item">
+        <div class="f-avatar">م</div>
+        <div class="f-details"><span class="f-name">محمد</span><span class="f-status playing">في مباراة</span></div>
+        <div class="f-action"></div>
+      </div>
+      <div class="friend-item">
+        <div class="f-avatar">ن</div>
+        <div class="f-details"><span class="f-name">نورة</span><span class="f-status online" id="status-n">متصل</span></div>
+        <div class="f-action" id="action-n"><button class="f-invite-btn" onclick="inviteSpecificFriend('نورة','ن','n')">+</button></div>
+      </div>
+      <div class="friend-item offline">
+        <div class="f-avatar" style="background:#475569">خ</div>
+        <div class="f-details"><span class="f-name">خالد</span><span class="f-status">غير متصل</span></div>
+        <div class="f-action"><button class="f-invite-btn" disabled>+</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- GAME: COUNTDOWN -->
+<div id="screen-countdown" class="screen">
+  <div class="countdown-content">
+    <p class="cd-label">استعد!</p>
+    <div class="cd-number" id="cd-number">3</div>
+    <p class="cd-game-name" id="cd-game-name">لعبة الألوان</p>
+  </div>
+</div>
+
+<!-- GAME 1: COLOR MATCH -->
+<div id="screen-game-color" class="screen">
+  <div class="game-header">
+    <div class="game-timer-wrap">
+      <div class="game-timer-bar" id="color-timer-bar"></div>
+    </div>
+    <div class="game-score-row">
+      <span class="g-label">النقاط: <strong id="color-score">0</strong></span>
+      <span class="g-label game-title-label">🎨 تطابق الألوان</span>
+      <span class="g-label">الوقت: <strong id="color-time">60</strong>ث</span>
+    </div>
+  </div>
+  <div class="game-body">
+    <div class="color-instructions">
+      <p>اضغط اللون المناسب لاسم اللون المكتوب</p>
+      <p class="color-hint">لا تنخدع بلون النص!</p>
+    </div>
+    <div class="color-word-display">
+      <span id="color-word" class="color-word">أحمر</span>
+    </div>
+    <div class="color-choices" id="color-choices"></div>
+    <div class="game-feedback" id="color-feedback"></div>
+  </div>
+</div>
+
+<!-- GAME 2: SEQUENCE MEMORY -->
+<div id="screen-game-memory" class="screen">
+  <div class="game-header">
+    <div class="game-timer-wrap">
+      <div class="game-timer-bar" id="memory-timer-bar"></div>
+    </div>
+    <div class="game-score-row">
+      <span class="g-label">المستوى: <strong id="memory-level">1</strong></span>
+      <span class="g-label game-title-label">🔢 تسلسل الأرقام</span>
+      <span class="g-label">الوقت: <strong id="memory-time">90</strong>ث</span>
+    </div>
+  </div>
+  <div class="game-body">
+    <div id="memory-show-phase">
+      <p class="memory-instruction" id="memory-instruction">احفظ التسلسل!</p>
+      <div class="memory-sequence" id="memory-sequence"></div>
+      <p class="memory-sub" id="memory-sub">سيختفي بعد لحظة...</p>
+    </div>
+    <div id="memory-input-phase" style="display:none">
+      <p class="memory-instruction">أدخل التسلسل بالترتيب</p>
+      <div class="memory-input-display" id="memory-input-display"></div>
+      <div class="memory-numpad" id="memory-numpad"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME 3: SPEED TAP -->
+<div id="screen-game-tap" class="screen">
+  <div class="game-header">
+    <div class="game-timer-wrap">
+      <div class="game-timer-bar" id="tap-timer-bar"></div>
+    </div>
+    <div class="game-score-row">
+      <span class="g-label">نقاط: <strong id="tap-score">0</strong></span>
+      <span class="g-label game-title-label">⚡ اضغط الأشكال</span>
+      <span class="g-label">الوقت: <strong id="tap-time">45</strong>ث</span>
+    </div>
+  </div>
+  <div class="game-body tap-body">
+    <div class="tap-target-label">
+      اضغط فقط: <span class="tap-target-shape" id="tap-target">⭐</span>
+    </div>
+    <div class="tap-arena" id="tap-arena"></div>
+    <div class="tap-miss-counter">تفوّتت: <strong id="tap-misses">0</strong></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen">
+  <div class="results-content">
+    <div class="results-animation" id="results-anim">
+      <div class="trophy-icon" id="trophy-icon">🏆</div>
+    </div>
+    <h2 class="results-title" id="results-title">فزت!</h2>
+    <p class="results-subtitle" id="results-subtitle">أداء رائع يا بطل 🔥</p>
+
+    <div class="results-scores">
+      <div class="result-row you-result">
+        <span class="result-rank" id="your-rank-icon">🥇</span>
+        <span class="result-name">أنت (أحمد)</span>
+        <span class="result-pts" id="your-score">+10 نقاط</span>
+      </div>
+      <div class="result-row">
+        <span class="result-rank">🥈</span>
+        <span class="result-name">محمد</span>
+        <span class="result-pts lost">+0 نقطة</span>
+      </div>
+      <div class="result-row">
+        <span class="result-rank">🥉</span>
+        <span class="result-name">خالد</span>
+        <span class="result-pts lost">+0 نقطة</span>
+      </div>
+    </div>
+
+    <div class="reward-box" id="reward-box">
+      <div class="reward-label">مكافأة الفوز</div>
+      <div class="reward-amount">🪙 +10 نقاط</div>
+      <div class="reward-total" id="reward-total">رصيدك الجديد: 260 نقطة</div>
+    </div>
+
+    <div class="results-actions">
+      <button class="btn-primary" onclick="playAgain()">🔄 جولة أخرى</button>
+      <button class="btn-secondary" onclick="showScreen('screen-home')">🏠 الرئيسية</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div id="screen-shop" class="screen">
+  <div class="header">
+    <button class="btn-back" onclick="showScreen('screen-home')">→</button>
+    <h1 class="room-title">غرفة الانتظار</h1>
+  </div>
+  <div class="shop-content">
+    <h3 class="section-title">شحن النقاط</h3>
+    <div class="shop-grid">
+      <div class="shop-item" onclick="buyCoins(100, 2)">
+        <div class="shop-icon">🪙</div>
+        <div class="shop-amount">100 نقطة</div>
+        <div class="shop-price">2 ر.س</div>
+        <button class="shop-btn">اشتر</button>
+      </div>
+      <div class="shop-item popular" onclick="buyCoins(500, 8)">
+        <div class="popular-badge">الأكثر مبيعاً</div>
+        <div class="shop-icon">💰</div>
+        <div class="shop-amount">500 نقطة</div>
+        <div class="shop-price">8 ر.س</div>
+        <button class="shop-btn">اشتر</button>
+      </div>
+      <div class="shop-item" onclick="buyCoins(1200, 15)">
+        <div class="shop-icon">💎</div>
+        <div class="shop-amount">1200 نقطة</div>
+        <div class="shop-price">15 ر.س</div>
+        <button class="shop-btn">اشتر</button>
+      </div>
+    </div>
+    <h3 class="section-title">أسكنات الشخصية</h3>
+    <div class="skins-grid">
+      <div class="skin-item" onclick="buySkin('🔥', 50)">
+        <div class="skin-preview">🔥</div>
+        <div class="skin-name">النار</div>
+        <div class="skin-price">🪙 50</div>
+      </div>
+      <div class="skin-item" onclick="buySkin('👑', 80)">
+        <div class="skin-preview">👑</div>
+        <div class="skin-name">الملك</div>
+        <div class="skin-price">🪙 80</div>
+      </div>
+      <div class="skin-item" onclick="buySkin('⚡', 60)">
+        <div class="skin-preview">⚡</div>
+        <div class="skin-name">البرق</div>
+        <div class="skin-price">🪙 60</div>
+      </div>
+      <div class="skin-item locked" onclick="buySkin('🌙', 100)">
+        <div class="skin-preview">🌙</div>
+        <div class="skin-name">القمر</div>
+        <div class="skin-price">🪙 100</div>
+      </div>
+    </div>
+    <h3 class="section-title">خلفيات اللوبي (الطاولات)</h3>
+    <div class="skins-grid">
+      <div class="skin-item" onclick="buyBackground('الفضاء', 'radial-gradient(circle at center, #000, #1a0033)', 150)">
+        <div class="skin-preview" style="background: radial-gradient(circle at center, #000, #1a0033); border-radius: 8px; width: 100%; height: 50px;"></div>
+        <div class="skin-name">الفضاء</div>
+        <div class="skin-price">🪙 150</div>
+      </div>
+      <div class="skin-item" onclick="buyBackground('الصحراء', 'radial-gradient(circle at center, #d97706, #78350f)', 120)">
+        <div class="skin-preview" style="background: radial-gradient(circle at center, #d97706, #78350f); border-radius: 8px; width: 100%; height: 50px;"></div>
+        <div class="skin-name">صحراوي</div>
+        <div class="skin-price">🪙 120</div>
+      </div>
+      <div class="skin-item" onclick="buyBackground('الجليد', 'radial-gradient(circle at center, #38bdf8, #0369a1)', 100)">
+        <div class="skin-preview" style="background: radial-gradient(circle at center, #38bdf8, #0369a1); border-radius: 8px; width: 100%; height: 50px;"></div>
+        <div class="skin-name">جليدي</div>
+        <div class="skin-price">🪙 100</div>
+      </div>
+    </div>
+    <div class="daily-reward-card" onclick="claimDaily()">
+      <div class="daily-icon">🎁</div>
+      <div>
+        <div class="daily-title">المكافأة اليومية</div>
+        <div class="daily-sub">احصل على 25 نقطة مجاناً</div>
+      </div>
+      <button class="daily-btn" id="daily-btn">استلم</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div id="screen-profile" class="screen">
+  <div class="header">
+    <button class="btn-back" onclick="showScreen('screen-home')">→</button>
+    <div class="header-logo">ملفي الشخصي</div>
+    <div style="width:48px"></div>
+  </div>
+  <div class="profile-content">
+    <div class="profile-hero">
+      <div class="profile-avatar" id="profile-avatar">أ</div>
+      <h2 class="profile-name">أحمد الشمري</h2>
+      <div class="profile-level">المستوى 8 ⭐</div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar" style="width:65%"></div>
+      </div>
+      <small class="xp-label">650 / 1000 XP للمستوى التالي</small>
+    </div>
+    <div class="profile-stats-grid">
+      <div class="pstat">
+        <span class="pstat-num">47</span>
+        <span class="pstat-label">مباراة لعبت</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-num">12</span>
+        <span class="pstat-label">انتصار</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-num">26%</span>
+        <span class="pstat-label">نسبة الفوز</span>
+      </div>
+      <div class="pstat">
+        <span class="pstat-num">🔥3</span>
+        <span class="pstat-label">أفضل سلسلة</span>
+      </div>
+    </div>
+    <div class="achievements-section">
+      <h3 class="section-title">الإنجازات</h3>
+      <div class="achievements-list">
+        <div class="achievement earned">
+          <span class="ach-icon">⚡</span>
+          <div><strong>الأسرع</strong><small>فز بلعبة السرعة</small></div>
+        </div>
+        <div class="achievement earned">
+          <span class="ach-icon">🧠</span>
+          <div><strong>عقل نير</strong><small>فز 5 مرات متتالية</small></div>
+        </div>
+        <div class="achievement">
+          <span class="ach-icon">👑</span>
+          <div><strong>الملك</strong><small>تصدّر الجدول</small></div>
+        </div>
+        <div class="achievement">
+          <span class="ach-icon">💎</span>
+          <div><strong>المحترف</strong><small>العب 100 مباراة</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+  <!-- MODAL: MODE SELECTION -->
+  <div id="modal-modes" class="modal-overlay" style="display:none" onclick="closeModesModal()">
+    <div class="modal-box mode-selection-modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>اختر طور اللعبة</h3>
+        <button class="close-btn" onclick="closeModesModal()">&times;</button>
+      </div>
+      <div class="modes-grid">
+        <!-- Mode 5: Discover the Image -->
+        <div class="mode-card mode-crush" onclick="selectMode('crush-discover')">
+          <div class="mode-icon">🔍</div>
+          <div class="mode-info">
+            <span class="mode-name">اكتشف الصورة</span>
+            <span class="mode-desc">جد الكلمات المتعلقة بالصورة</span>
+          </div>
+        </div>
+        <!-- Mode 6: Discover the Proverb -->
+        <div class="mode-card mode-crush" onclick="selectMode('crush-proverb')">
+          <div class="mode-icon">📖</div>
+          <div class="mode-info">
+            <span class="mode-name">اكتشف المثل</span>
+            <span class="mode-desc">خمن المثل من الرموز</span>
+          </div>
+        </div>
+        <!-- Mode 7: Secret Word -->
+        <div class="mode-card mode-crush" onclick="selectMode('crush-secret')">
+          <div class="mode-icon">🔑</div>
+          <div class="mode-info">
+            <span class="mode-name">كلمة السر</span>
+            <span class="mode-desc">اشطب الكلمات لتجد السر</span>
+          </div>
+        </div>
+        <!-- Mode 8: Crossword -->
+        <div class="mode-card mode-crush" onclick="selectMode('crush-crossword')">
+          <div class="mode-icon">🧩</div>
+          <div class="mode-info">
+            <span class="mode-name">كلمات متقاطعة</span>
+            <span class="mode-desc">اضغط على السطر وشاهد الصورة</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<!-- INVITE MODAL -->
+<div id="invite-modal" class="modal-overlay" style="display:none" onclick="closeModal()">
+  <div class="modal-box" onclick="e=>e.stopPropagation()">
+    <h3>دعوة صديق</h3>
+    <button class="btn-cancel-sm" onclick="closeModal()">إغلاق</button>
+  </div>
+</div>
+
+  <!-- Screen: Countdown -->
+  <div id="screen-countdown" class="screen">
+    <div class="countdown-wrap">
+      <div id="cd-number">3</div>
+      <div id="cd-game-name">🍓 لعبة الفواكه</div>
+    </div>
+  </div>
+
+  <!-- Screen: Fruit Game -->
+  <div id="screen-game-fruit" class="screen game-bg">
+    <div class="fruit-table">
+      <!-- Bot 2 (Top) -->
+      <div class="fruit-player bot top" id="fruit-p3">
+        <div class="fp-name">رعد</div>
+        <div class="fp-cards"><div class="f-card back"></div><div class="f-card back"></div><div class="f-card back"></div></div>
+      </div>
+      
+      <!-- Bot 1 (Left) -->
+      <div class="fruit-player bot left" id="fruit-p2">
+        <div class="fp-name">سالم</div>
+        <div class="fp-cards"><div class="f-card back"></div><div class="f-card back"></div><div class="f-card back"></div></div>
+      </div>
+
+      <!-- Bot 3 (Right) -->
+      <div class="fruit-player bot right" id="fruit-p4">
+        <div class="fp-name">صقر</div>
+        <div class="fp-cards"><div class="f-card back"></div><div class="f-card back"></div><div class="f-card back"></div></div>
+      </div>
+
+      <!-- YOU (Bottom) -->
+      <div class="fruit-player you-player" id="fruit-p1">
+        <div class="fp-name">أنت</div>
+        <div class="fp-cards" id="my-fruit-cards">
+          <!-- 3 slots -->
+        </div>
+        <div class="fp-controls">
+          <button id="fruit-pass-btn" class="pass-btn" onclick="passFruitCard()">مرر ورقة للمنافس ➔</button>
+          <button id="fruit-reveal-btn" class="pass-btn ability-btn" onclick="useRevealPower()">🔍 كشف ورقة (مرة واحدة)</button>
+        </div>
+        <div class="turn-indicator">دورك الآن!</div>
+      </div>
+
+      <div class="table-center">
+        <div class="deck-icon">🍎</div>
+      </div>
+      <div class="fruit-win-reveal" id="fruit-win-reveal" style="display:none">
+        <div class="fwr-title" id="fruit-winner-name">فاز لاعب!</div>
+        <div class="fwr-cards" id="fruit-winner-cards"></div>
+      </div>
+      <div class="fruit-pass-feed" id="fruit-pass-feed" style="display:none">
+        <!-- التمريرات ستُضاف هنا ديناميكياً -->
+      </div>
+      <div class="fruit-reveal-feed" id="fruit-reveal-feed" style="display:none">
+        <span class="reveal-label">🔍 كشفت ورقة من:</span>
+        <span class="reveal-player-name" id="reveal-player-name">نورة</span>
+        <span class="reveal-card" id="reveal-card">🍎</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Memory Clash -->
+  <div id="screen-game-memory-clash" class="screen">
+    <div class="game-header">
+      <div class="game-timer-wrap">
+        <div class="game-timer-bar" id="memory-clash-timer-bar"></div>
+      </div>
+      <div class="game-score-row">
+        <span class="g-label">نقاطك: <strong id="memory-clash-score">0</strong></span>
+        <span class="g-label game-title-label">🧠 صراع الذاكرة</span>
+        <span class="g-label">نقاط الخصم: <strong id="memory-clash-enemy-score">0</strong></span>
+      </div>
+    </div>
+    <div class="game-body">
+      <div class="memory-grid" id="memory-clash-grid"></div>
+    </div>
+    <div class="game-opponents-sidebar" id="memory-clash-opponents"></div>
+  </div>
+
+  <!-- Screen: Math Duel -->
+  <div id="screen-game-math-duel" class="screen">
+    <div class="game-header">
+      <div class="game-timer-wrap">
+        <div class="game-timer-bar" id="math-duel-timer-bar"></div>
+      </div>
+      <div class="game-score-row">
+        <span class="g-label">نقاطك: <strong id="math-duel-score">0</strong></span>
+        <span class="g-label game-title-label">➗ تحدي الحساب</span>
+        <span class="g-label">نقاط الخصم: <strong id="math-duel-enemy-score">0</strong></span>
+      </div>
+    </div>
+    <div class="game-body math-body">
+      <div class="math-question-card">
+        <div class="math-equation" id="math-equation">? + ? = ?</div>
+      </div>
+      <div class="math-choices" id="math-choices"></div>
+    </div>
+    <div class="game-opponents-sidebar" id="math-duel-opponents"></div>
+  </div>
+
+  <!-- Screen: Word Hunt -->
+  <div id="screen-game-word-hunt" class="screen">
+    <div class="game-header">
+      <div class="game-timer-wrap">
+        <div class="game-timer-bar" id="word-hunt-timer-bar"></div>
+      </div>
+      <div class="game-score-row">
+        <span class="g-label">نقاطك: <strong id="word-hunt-score">0</strong></span>
+        <span class="g-label game-title-label">🔍 صيد الكلمات</span>
+        <span class="g-label">نقاط الخصم: <strong id="word-hunt-enemy-score">0</strong></span>
+      </div>
+    </div>
+    <div class="game-body word-body">
+      <div class="word-hunt-target-label">ابحث عن: <span id="word-hunt-target" class="target-word">?</span></div>
+      <div class="word-grid" id="word-hunt-grid"></div>
+    </div>
+    <div class="game-opponents-sidebar" id="word-hunt-opponents"></div>
+  </div>
+
+  <!-- Screen: Stacker Battle -->
+  <div id="screen-game-stacker" class="screen">
+    <div class="game-header">
+      <div class="game-timer-wrap">
+        <div class="game-timer-bar" id="stacker-timer-bar"></div>
+      </div>
+      <div class="game-score-row">
+        <span class="g-label">نقاطك: <strong id="stacker-score">0</strong></span>
+        <span class="g-label game-title-label">🏗️ برج التوازن</span>
+        <span class="g-label">نقاط الخصم: <strong id="stacker-enemy-score">0</strong></span>
+      </div>
+    </div>
+    <div class="game-body stacker-body">
+       <div class="stacker-canvas-container">
+          <canvas id="stacker-canvas"></canvas>
+       </div>
+       <button class="stacker-drop-btn" onclick="stackerDrop()">وضع الكتلة</button>
+    </div>
+    <div class="game-opponents-sidebar" id="stacker-opponents"></div>
+  </div>
+
+  <!-- Screen: Word Crush (Competitive) -->
+  <div id="screen-game-word-crush" class="screen">
+    <div class="game-header">
+      <div class="game-timer-wrap">
+        <div class="game-timer-bar" id="crush-timer-bar"></div>
+      </div>
+      <div class="game-score-row">
+        <span class="g-label">النقاط: <strong id="crush-score">0</strong></span>
+        <span class="g-label game-title-label">🧩 كلمات كراش</span>
+        <span class="g-label">الوقت: <strong id="crush-time">120</strong>ث</span>
+        <span class="g-label" onclick="showScreen('screen-home')">🏠</span>
+      </div>
+    </div>
+    
+    <div class="game-body crush-body">
+      <!-- Image/Hint Area (for Mode 4) -->
+      <div id="crush-hint-area" style="display:none">
+        <div id="crush-hint-img" style="font-size: 5rem; margin-bottom: 10px;">🖼️</div>
+      </div>
+
+      <!-- Target words slots -->
+      <div class="crush-target-slots" id="crush-slots">
+        <!-- Word slots like [ _ _ _ ] will appear here -->
+      </div>
+      
+      <!-- Interaction Area -->
+      <div class="crush-interaction-area">
+        <div class="crush-current-word" id="crush-current-preview">...</div>
+        
+        <!-- Type 1: Letter Circle (Connecting) -->
+        <!-- حلقة الحروف مع طبقة رسم -->
+        <div class="crush-letter-circle" id="crush-circle" style="display:none">
+          <svg class="crush-svg-layer" id="crush-svg-circle"></svg>
+        </div>
+        
+        <!-- شبكة الكلمات مع طبقة رسم -->
+        <div class="crush-grid-container" id="crush-grid" style="display:none">
+          <svg class="crush-svg-layer" id="crush-svg-grid"></svg>
+        </div>
+
+        <!-- Type 3: Scrambled Letters (Click to order) -->
+        <div class="crush-scrambled-letters" id="crush-scrambled" style="display:none"></div>
+
+        <!-- New Dynamic Keyboard -->
+        <div id="crush-keyboard" class="crush-keyboard" style="display:none;"></div>
+      </div>
+    </div>
+    
+    <div class="game-opponents-sidebar" id="word-crush-opponents"></div>
+  </div>
+
+  <!-- Screen: Results -->
+  <div id="screen-results" class="screen">
+    <div class="results-card">
+      <h2 id="results-title">النتائج</h2>
+      <p id="results-subtitle"></p>
+      <div class="results-stats">
+        <div class="res-stat"><span>النقاط المكتسبة</span><strong id="your-score">0</strong></div>
+      </div>
+      <button class="btn-primary" onclick="showScreen('screen-home')" style="width:100%">العودة للوبي</button>
+    </div>
+  </div>
+
+  <!-- CHAT MODAL -->
+  <div id="chat-modal" class="modal" style="display:none; justify-content: flex-end; align-items: stretch; background: rgba(0,0,0,0.5); z-index: 2000;">
+    <div class="chat-container" style="width: 350px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; animation: slideInRight 0.3s ease;">
+      <div class="chat-header" style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin:0; font-size:1.1rem; color:#facc15;">دردشة الفريق</h3>
+        <button onclick="toggleChat()" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1.5rem; opacity:0.7;">&times;</button>
+      </div>
+      <div id="chat-messages" style="flex:1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth;">
+        <div style="text-align:center; opacity:0.5; font-size:0.8rem; margin: 10px 0;">مرحباً بك في دردشة الفريق</div>
+      </div>
+      <div class="chat-input-area" style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 10px; background: rgba(0,0,0,0.2);">
+        <input type="text" id="chat-input" placeholder="اكتب رسالة..." style="flex:1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 12px; color:#fff; outline:none; font-size:0.9rem;">
+        <button onclick="sendChatMessage()" style="background: #facc15; border:none; border-radius: 4px; padding: 0 20px; font-weight:bold; cursor:pointer; color:#000;">إرسال</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- MODAL: MATCHMAKING -->
+  <div id="screen-matchmaking" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="mm-loading-icon" style="font-size: 80px; margin-bottom: 20px;">🔍</div>
+      <h2 id="mm-title" style="font-size: 32px; margin-bottom: 10px; color:#fff;">جاري البحث عن خصوم...</h2>
+      <p id="mm-status" style="opacity: 0.7; font-size: 20px; margin-bottom: 40px; color:#fff;">نظام البحث عن التحديات نشط</p>
+      
+      <div class="mm-players-grid" style="display:flex; justify-content:center; align-items:center; gap:40px; min-height:150px;">
+        <div id="mm-p1" class="mm-slot found"><div class="mm-avatar" style="width:120px; height:120px; font-size:48px;">أ</div><span style="font-size:28px; margin-top:8px;">أنت</span></div>
+        <span id="mm-vs-1" class="vs-label" style="font-size:28px; opacity:0.5;">VS</span>
+        <div id="mm-p2" class="mm-slot searching"><div class="mm-avatar spin" style="width:120px; height:120px; font-size:48px;">?</div><span style="font-size:28px; margin-top:8px;">بحث...</span></div>
+        <span id="mm-vs-2" class="vs-label" style="font-size:28px; opacity:0.5;">VS</span>
+        <div id="mm-p3" class="mm-slot searching"><div class="mm-avatar spin" style="width:120px; height:120px; font-size:48px;">?</div><span style="font-size:28px; margin-top:8px;">بحث...</span></div>
+      </div>
+
+      <button class="pubg-btn-outline" style="margin-top: 40px; width:100%; font-size:24px; padding:20px;" onclick="cancelMatchmaking()">إلغاء البحث</button>
+    </div>
+  </div>
+
+  <!-- MATCH SELECTION LAYER -->
+  <div id="screen-match-selection" class="enemy-search-layer" style="display:none">
+    <div class="enemy-search-panel">
+      <div class="enemy-search-header">
+        <button class="enemy-search-close" onclick="closeMatchSelection()">✕</button>
+        <h2>اختر حجم المواجهة</h2>
+      </div>
+      <div class="enemy-search-options">
+        <button class="enemy-option-btn" onclick="chooseMatchOption(1)">
+          <small id="match-sub-1">مواجهة شخص واحد</small>
+        </button>
+        <button class="enemy-option-btn" onclick="chooseMatchOption(2)">
+          <small id="match-sub-2">مواجهة شخصين</small>
+        </button>
+        <button class="enemy-option-btn" onclick="chooseMatchOption(3)">
+          <small id="match-sub-3">مواجهة ثلاثة أشخاص</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div> <!-- /app-scale-wrapper -->
+
+<script src="game.js?v=11"></script>
+</body>
+</html>
