@@ -211,18 +211,41 @@ const WordCrushGame = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const sortedPlayers = [...roomState.players].sort((a, b) => scores[b.id] - scores[a.id]);
-
   if (gameFinished) {
     return <ResultsScreen scores={scores} />;
   }
 
   return (
     <div className="absolute inset-0 bg-gradient-to-b from-[#005a5a] to-[#003333] text-white flex flex-col overflow-hidden animate-in fade-in duration-500 font-sans">
-      {/* Top Bar - Refined Leaderboard */}
+      {/* Top Bar - Dynamic Leaderboard */}
       <div className="px-4 pt-10 pb-3 flex items-center justify-between z-30 bg-black/20 backdrop-blur-md border-b border-white/10 shadow-lg">
-        {/* Players Section - Team vs Team visualization */}
+        
+        {/* Players Section - Dynamic visualization based on matchType */}
         {(() => {
+          if (roomState.matchType === 'solo') {
+            const allPlayersInMatch = [...roomState.players, ...(roomState.opponents || [])];
+            return (
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-[60vw]">
+                {allPlayersInMatch.map((player, i) => (
+                  <React.Fragment key={player.id}>
+                    {i > 0 && <span className="text-[8px] font-black text-white/20 italic shrink-0">VS</span>}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="relative">
+                        <div className={`w-8 h-8 rounded-full border ${player.id === 'you' ? 'border-blue-400' : 'border-red-400'} overflow-hidden shadow-sm`}>
+                          <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 bg-yellow-400 text-[#000] text-[7px] font-black px-1 rounded-full border border-white">
+                          {scores[player.id]}
+                        </div>
+                      </div>
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            );
+          }
+
+          // Group Mode: Team vs Team logic
           const teamAScore = roomState.players.reduce((sum, p) => sum + (scores[p.id] || 0), 0);
           const teamBScore = (roomState.opponents || []).reduce((sum, p) => sum + (scores[p.id] || 0), 0);
           
@@ -276,13 +299,11 @@ const WordCrushGame = () => {
 
         {/* Right Section - Coins ABOVE Timer */}
         <div className="flex flex-col items-end gap-1.5">
-          {/* Total Coins Balance - Match Lobby Style */}
           <div className="bg-black/40 border border-white/10 px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
             <span className="bg-yellow-400/20 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">💰</span>
             <span className="text-yellow-400 font-black text-xs">{coins}</span>
           </div>
 
-          {/* Timer Section - Sleek Look */}
           <div className="bg-white/5 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 flex items-center gap-2 shadow-inner">
             <span className="text-white/80 font-black text-xs tabular-nums tracking-wider">{formatTime(timeLeft)}</span>
             <span className="text-red-400 text-[10px] animate-pulse">⏱️</span>
@@ -290,7 +311,7 @@ const WordCrushGame = () => {
         </div>
       </div>
 
-      {/* 1. Hint Image Area - Smaller to save space */}
+      {/* 1. Hint Image Area */}
       <div className="h-[18%] flex flex-col items-center justify-center p-2">
         <div className="relative h-full aspect-square bg-[#002b2b]/40 rounded-2xl border-4 border-white/10 shadow-2xl overflow-hidden flex items-center justify-center group">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
@@ -320,7 +341,6 @@ const WordCrushGame = () => {
           ))}
         </div>
         
-        {/* Current Selection Visualizer - The "Writing Space" */}
         <div className="h-10 w-full max-w-[200px] bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center gap-1.5 border border-white/5 shadow-inner">
           {selectedLetters.length > 0 ? (
             selectedLetters.map((l, i) => (
@@ -334,19 +354,19 @@ const WordCrushGame = () => {
         </div>
       </div>
 
-      {/* 3. The Colorful Grid - Tight & Smaller */}
+      {/* 3. The Colorful Grid */}
       <div className="px-4 flex-1 flex flex-col items-center justify-center mb-16">
         <div className="grid grid-cols-4 gap-0 max-w-[220px] mx-auto border-2 border-white/10 rounded-xl overflow-hidden shadow-2xl">
           {puzzles[currentPuzzle].grid.map((row, rIdx) => 
             row.map((char, cIdx) => {
               const isSelected = selectedLetters.find(l => l.pos === `${rIdx}-${cIdx}`);
               const cellColors = [
-                'bg-[#ff9f43]', // Orange
-                'bg-[#28c76f]', // Green
-                'bg-[#ea5455]', // Red/Pink
-                'bg-[#ea5455]', // Re-using for symmetry
-                'bg-[#00cfe8]', // Cyan
-                'bg-[#f39c12]', // Yellow
+                'bg-[#ff9f43]', 
+                'bg-[#28c76f]', 
+                'bg-[#ea5455]', 
+                'bg-[#ea5455]', 
+                'bg-[#00cfe8]', 
+                'bg-[#f39c12]', 
               ];
               const colorClass = cellColors[(rIdx + cIdx) % cellColors.length];
               
@@ -368,7 +388,6 @@ const WordCrushGame = () => {
         </div>
       </div>
 
-      {/* Footer - Hint Button - Lowered and showing price 10 */}
       <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center z-40 pointer-events-none">
         <button 
           onClick={handleHint}
@@ -382,7 +401,6 @@ const WordCrushGame = () => {
         </button>
       </div>
 
-      {/* Toast Notification - Centered on screen */}
       {toast.visible && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-black/80 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/20 shadow-2xl animate-in zoom-in fade-in duration-300">
           <span className="text-white font-black text-sm text-center">{toast.message}</span>

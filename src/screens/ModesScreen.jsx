@@ -6,9 +6,6 @@ const ModesScreen = () => {
 
   const games = [
     { id: 'crush', name: 'كلمات كراش', icon: '🧩', desc: 'تحدي السرعة والذكاء في تركيب الكلمات', color: 'from-indigo-500 to-purple-600' },
-    { id: 'mafia', name: 'المافيا', icon: '🕵️', desc: 'اكشف المافيا أو اخدع الجميع في جولات التصويت', color: 'from-slate-700 to-slate-900', locked: true },
-    { id: 'impostor', name: 'برا السالفة', icon: '🤫', desc: 'الكل عارف السالفة إلا واحد.. تقدر تكشفه؟', color: 'from-orange-500 to-red-600', locked: true },
-    { id: 'draw', name: 'ارسم وخمن', icon: '🎨', desc: 'ارسم الكلمة وخلي الباقي يخمنوا بسرعه!', color: 'from-pink-500 to-rose-600', locked: true },
   ];
 
   const handleSelect = (game) => {

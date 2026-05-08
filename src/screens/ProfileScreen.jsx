@@ -10,6 +10,7 @@ const ProfileScreen = () => {
   const [searchedUser, setSearchedUser] = useState(null);
   const [roomCode, setRoomCode] = useState('');
   const [toast, setToast] = useState(null);
+  const [selectionStep, setSelectionStep] = useState(null); // null, 'type'
 
   const showToast = (msg) => {
     setToast(msg);
@@ -21,13 +22,18 @@ const ProfileScreen = () => {
     setIsEditing(false);
   };
 
-  const handleCreatePrivate = () => {
-    const success = createPrivateRoom();
+  const handleCreatePrivate = (type) => {
+    if (coins < 100) {
+      showToast('⚠️ رصيدك غير كافٍ! تحتاج 100 نقطة');
+      setSelectionStep(null);
+      return;
+    }
+
+    const success = createPrivateRoom(type);
     if (success) {
       showToast('✅ تم إنشاء غرفة خاصة بنجاح (-100 نقطة)');
+      setSelectionStep(null);
       setTimeout(() => showScreen('private_room'), 1000);
-    } else {
-      showToast('⚠️ رصيدك غير كافٍ! تحتاج 100 نقطة');
     }
   };
 
@@ -38,12 +44,11 @@ const ProfileScreen = () => {
     }
     showToast('جاري الانضمام للغرفة...');
     
-    // Simulate joining an existing room after a short delay
     setTimeout(() => {
       setRoomState(prev => ({
         ...prev,
         isPrivateRoom: true,
-        isLeader: false, // You are NOT the leader when joining
+        isLeader: false,
         privateRoomConfig: {
           teamA: [
             { id: 'leader_123', name: 'صاحب الغرفة', avatar: 'https://i.pravatar.cc/150?u=admin', isReady: true, isLeader: true },
@@ -60,7 +65,6 @@ const ProfileScreen = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
-    // Simulate finding a user with stats and achievements
     const found = {
       name: searchQuery,
       username: searchQuery + '_fan',
@@ -83,9 +87,8 @@ const ProfileScreen = () => {
 
   return (
     <div className="absolute inset-0 bg-[#0d0b1f] text-white flex flex-col overflow-y-auto animate-in slide-in-from-bottom duration-500 font-sans scrollbar-hide pb-20">
-      {/* Header with Glassmorphism */}
+      {/* Header */}
       <div className="sticky top-0 z-[60] bg-[#0d0b1f]/80 backdrop-blur-xl border-b border-white/10 p-6 flex items-center justify-between">
-        {/* Toast Notification */}
         {toast && (
           <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-blue-600 px-6 py-2 rounded-full shadow-2xl animate-in slide-in-from-top duration-300 font-bold text-[10px] whitespace-nowrap">
             {toast}
@@ -104,9 +107,40 @@ const ProfileScreen = () => {
         <div className="w-10" />
       </div>
 
+      {/* Creation Step Overlay */}
+      {selectionStep === 'type' && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectionStep(null)} />
+          <div className="relative w-full max-w-[280px] bg-[#1a1635] border border-white/10 rounded-[2.5rem] p-6 shadow-2xl animate-in zoom-in duration-300">
+            <h3 className="text-lg font-black text-center mb-6 text-white">نوع الغرفة الخاصة</h3>
+            <div className="space-y-3">
+              <button 
+                onClick={() => handleCreatePrivate('solo')}
+                className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-between px-6 hover:brightness-110 transition-all active:scale-95 shadow-lg group"
+              >
+                <span className="text-xl font-black text-white">فردي</span>
+                <span className="text-2xl group-hover:translate-x-1 transition-transform">👤</span>
+              </button>
+              <button 
+                onClick={() => handleCreatePrivate('group')}
+                className="w-full h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-between px-6 hover:brightness-110 transition-all active:scale-95 shadow-lg group"
+              >
+                <span className="text-xl font-black text-white">تعاوني</span>
+                <span className="text-2xl group-hover:translate-x-1 transition-transform">👥</span>
+              </button>
+            </div>
+            <button 
+              onClick={() => setSelectionStep(null)}
+              className="w-full mt-6 py-2 text-white/30 text-xs font-bold hover:text-white transition-colors"
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="px-6 py-8">
         {searchedUser ? (
-          /* Searched User View */
           <div className="space-y-8 animate-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
@@ -146,7 +180,6 @@ const ProfileScreen = () => {
               {searchedUser.isFriend ? '✓ صديقك' : 'إضافة صديق +'}
             </button>
 
-            {/* Searched User Achievements */}
             <div className="space-y-4">
               <h3 className="text-lg font-black px-2 flex items-center gap-2">
                 <span>🏆</span> الإنجازات
@@ -167,9 +200,7 @@ const ProfileScreen = () => {
             </div>
           </div>
         ) : (
-          /* Personal Profile View */
           <div className="space-y-8">
-            {/* Search Bar */}
             <form onSubmit={handleSearch} className="relative group">
               <input 
                 type="text"
@@ -181,7 +212,6 @@ const ProfileScreen = () => {
               <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 hover:scale-110 transition-transform">🔍</button>
             </form>
 
-            {/* Profile Info Card */}
             <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] -z-10" />
               
@@ -237,8 +267,6 @@ const ProfileScreen = () => {
               </div>
             </div>
 
-
-            {/* Achievements Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-black px-2 flex items-center gap-2">
                 <span>🏆</span> الإنجازات
@@ -258,16 +286,13 @@ const ProfileScreen = () => {
               </div>
             </div>
 
-            {/* Lucky Wheel Section */}
             <div className="bg-[#1a1635] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden text-center">
               <h3 className="text-lg font-black mb-6 flex items-center justify-center gap-2">
                 <span>🎡</span> دولاب الحظ اليومي
               </h3>
-              
               <LuckyWheel />
             </div>
 
-            {/* Private Room Actions - NEW SECTION */}
             {!searchedUser && (
               <div className="space-y-4 pb-10">
                 <h3 className="text-lg font-black px-2 flex items-center gap-2">
@@ -275,9 +300,8 @@ const ProfileScreen = () => {
                 </h3>
                 
                 <div className="grid grid-cols-1 gap-3">
-                  {/* Create Room Button */}
                   <button 
-                    onClick={handleCreatePrivate}
+                    onClick={() => setSelectionStep('type')}
                     className="group bg-gradient-to-r from-indigo-600 to-purple-700 border border-indigo-400/30 p-5 rounded-3xl flex items-center justify-between shadow-xl active:scale-95 transition-all"
                   >
                     <div className="flex items-center gap-4">
@@ -290,7 +314,6 @@ const ProfileScreen = () => {
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/40 group-hover:text-white">+</div>
                   </button>
 
-                  {/* Join Room Section */}
                   <div className="bg-[#1a1635] border border-white/5 p-5 rounded-3xl space-y-4 shadow-lg">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🔑</div>
@@ -347,7 +370,7 @@ const LuckyWheel = () => {
     if (!canSpin || isSpinning) return;
     
     setIsSpinning(true);
-    const spinCount = 5 + Math.random() * 5; // 5-10 full spins
+    const spinCount = 5 + Math.random() * 5; 
     const prizeIndex = Math.floor(Math.random() * prizes.length);
     const extraRotation = (360 / prizes.length) * prizeIndex;
     const totalRotation = rotation + (spinCount * 360) + extraRotation;
@@ -366,10 +389,7 @@ const LuckyWheel = () => {
   return (
     <div className="flex flex-col items-center gap-8">
       <div className="relative w-48 h-48">
-        {/* Pointer */}
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl z-20">👇</div>
-        
-        {/* The Wheel */}
         <div 
           className="w-full h-full rounded-full border-4 border-white/20 relative shadow-2xl overflow-hidden transition-transform duration-[4000ms] cubic-bezier(0.15, 0, 0.15, 1)"
           style={{ transform: `rotate(${rotation}deg)` }}
@@ -391,7 +411,6 @@ const LuckyWheel = () => {
               </div>
             </div>
           ))}
-          {/* Center Pin */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-lg z-10 border-4 border-[#1a1635]" />
         </div>
       </div>

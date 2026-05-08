@@ -39,7 +39,7 @@ export const GameProvider = ({ children }) => {
   const updateProfile = (newData) => {
     setUserProfile(prev => ({ ...prev, ...newData }));
   };
-  const [mutedPlayers, setMutedPlayers] = useState([]); // Track IDs of muted players
+  const [mutedPlayers, setMutedPlayers] = useState([]); 
   const [friends, setFriends] = useState([
     { id: 1, name: 'سارة', status: 'متصل', avatar: 'https://i.pravatar.cc/150?u=sara', isFriend: true, level: 12 },
     { id: 2, name: 'عمر', status: 'في تحدي', avatar: 'https://i.pravatar.cc/150?u=omar', isFriend: true, level: 8 },
@@ -54,31 +54,28 @@ export const GameProvider = ({ children }) => {
     ],
     isLeader: true,
     isPrivateRoom: false,
+    matchType: 'group',
     opponents: [],
     privateRoomConfig: {
-      teamA: [], // Home Team
-      teamB: [], // Opponent Team
-      maxSize: 4 // Total players per team
+      teamA: [], 
+      teamB: [], 
+      maxSize: 4 
     }
   });
 
-  // Action: Kick Player
   const kickPlayer = (playerId) => {
     setRoomState(prev => ({
       ...prev,
       players: prev.players.filter(p => p.id !== playerId)
     }));
-    // If kicked, we need to notify sidebar (this is handled by roomState dependency)
   };
 
-  // Action: Toggle Mute
   const toggleMutePlayer = (playerId) => {
     setMutedPlayers(prev => 
       prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
     );
   };
 
-  // Action: Transfer Leadership
   const transferLeadership = (newLeaderId) => {
     setRoomState(prev => ({
       ...prev,
@@ -90,7 +87,6 @@ export const GameProvider = ({ children }) => {
     }));
   };
 
-  // Action: Add Friend
   const addFriendToProfile = (playerName) => {
     setFriends(prev => {
       const existing = prev.find(f => f.name === playerName);
@@ -101,13 +97,11 @@ export const GameProvider = ({ children }) => {
     });
   };
 
-  // Action: Remove Friend
   const removeFriendFromProfile = (playerName) => {
     setFriends(prev => prev.filter(f => f.name !== playerName));
   };
 
-  // Action: Create Private Room
-  const createPrivateRoom = () => {
+  const createPrivateRoom = (matchType = 'group') => {
     if (coins < 100) return false;
     
     setCoins(prev => prev - 100);
@@ -123,7 +117,8 @@ export const GameProvider = ({ children }) => {
       return {
         ...prev,
         isPrivateRoom: true,
-        isLeader: true, // Creator is always the leader
+        matchType: matchType,
+        isLeader: true,
         players: [leaderYou],
         privateRoomConfig: {
           teamA: [leaderYou],
@@ -137,7 +132,6 @@ export const GameProvider = ({ children }) => {
     return true;
   };
 
-  // Action: Move player in private room
   const movePlayerToTeam = (playerId, team) => {
     setRoomState(prev => {
       const player = [...prev.privateRoomConfig.teamA, ...prev.privateRoomConfig.teamB].find(p => p.id === playerId);
@@ -162,7 +156,6 @@ export const GameProvider = ({ children }) => {
     });
   };
 
-  // Action: Join Private Room (via invitation)
   const joinPrivateRoom = (player, team = 'A') => {
     setRoomState(prev => {
       if (prev.privateRoomConfig.teamA.length + prev.privateRoomConfig.teamB.length >= 8) return prev;

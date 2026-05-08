@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import TopBar from '../components/TopBar';
 import FriendsSidebar from '../components/FriendsSidebar';
@@ -10,16 +10,24 @@ const PrivateRoomScreen = () => {
   } = useGame();
   const [toast, setToast] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(null);
+  const [menuData, setMenuData] = useState(null); // { player, team, x, y }
   const [isMuted, setIsMuted] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const config = roomState.privateRoomConfig;
+  const isSolo = roomState.matchType === 'solo';
   const allInRoom = [...config.teamA, ...config.teamB];
   const isYouReady = allInRoom.find(p => p.id === 'you')?.isReady;
+  
+  const MAX_PLAYERS = isSolo ? 4 : 8;
+  const TEAM_MAX = 4;
 
   const handleInvite = (friend) => {
     if (allInRoom.some(p => p.id === friend.id)) return;
+    if (allInRoom.length >= MAX_PLAYERS) {
+      showToast('⚠️ الغرفة ممتلئة!');
+      return;
+    }
     
     setToast(`تم إرسال دعوة لـ ${friend.name}`);
     setTimeout(() => {
@@ -29,7 +37,7 @@ const PrivateRoomScreen = () => {
         avatar: friend.avatar,
         isReady: true,
         isLeader: false
-      }, config.teamA.length <= config.teamB.length ? 'A' : 'B');
+      }, isSolo ? 'A' : (config.teamA.length <= config.teamB.length ? 'A' : 'B'));
       setToast(`✅ انضم ${friend.name} للغرفة`);
       setTimeout(() => setToast(null), 2000);
     }, 1000);
@@ -37,22 +45,38 @@ const PrivateRoomScreen = () => {
 
   const handleStart = () => {
     if (roomState.isLeader) {
-      if (config.teamA.length === 0 || config.teamB.length === 0) {
+      if (!isSolo && (config.teamA.length === 0 || config.teamB.length === 0)) {
         setToast('يجب وجود لاعب واحد على الأقل في كل فريق!');
         setTimeout(() => setToast(null), 2000);
         return;
       }
       
-      // Update main room players and opponents based on config
-      setRoomState(prev => ({
-        ...prev,
-        players: prev.privateRoomConfig.teamA,
-        opponents: prev.privateRoomConfig.teamB
-      }));
+      if (isSolo && allInRoom.length < 2) {
+        setToast('يجب وجود لاعبين على الأقل لبدء التحدي الفردي!');
+        setTimeout(() => setToast(null), 2000);
+        return;
+      }
+
+      setRoomState(prev => {
+        if (isSolo) {
+          const you = allInRoom.find(p => p.id === 'you');
+          const others = allInRoom.filter(p => p.id !== 'you');
+          return {
+            ...prev,
+            players: [you],
+            opponents: others
+          };
+        } else {
+          return {
+            ...prev,
+            players: prev.privateRoomConfig.teamA,
+            opponents: prev.privateRoomConfig.teamB
+          };
+        }
+      });
       
       showScreen('game');
     } else {
-      // Toggle ready state for members
       setRoomState(prev => {
         const newTeamA = prev.privateRoomConfig.teamA.map(p => 
           p.id === 'you' ? { ...p, isReady: !p.isReady } : p
@@ -62,7 +86,7 @@ const PrivateRoomScreen = () => {
         );
         return {
           ...prev,
-          privateRoomConfig: { teamA: newTeamA, teamB: newTeamB }
+          privateRoomConfig: { ...prev.privateRoomConfig, teamA: newTeamA, teamB: newTeamB }
         };
       });
     }
@@ -82,90 +106,61 @@ const PrivateRoomScreen = () => {
       }
     }));
     showToast('تم طرد اللاعب من الغرفة');
-    setActiveMenu(null);
+    setMenuData(null);
   };
 
   const handleToggleFriend = (player) => {
     addFriendToProfile(player.name);
-    showToast(friends.some(f => f.name === player.name) ? 'تم إلغاء الصداقة' : 'تم إرسال طلب صداقة');
-    setActiveMenu(null);
+    showToast(friends.some(f => f.name === player.name && f.isFriend) ? 'تمت إزالة الصداقة' : 'تمت إضافة صديق');
+    setMenuData(null);
   };
 
-  const TeamSlot = ({ player, team }) => {
-    const isFriend = friends.some(f => f.name === player.name && f.isFriend);
-    
+  const handleMenuClick = (e, player, team) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuData({
+      player,
+      team,
+      x: rect.left - 100, 
+      y: rect.bottom + 5
+    });
+  };
+
+  const PlayerSlot = ({ player, team, color }) => {
     return (
-      <div className={`w-full p-1.5 rounded-xl border flex items-center justify-between mb-1.5 relative transition-all animate-in zoom-in duration-300 ${
-        team === 'A' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-red-500/10 border-red-500/20'
+      <div className={`w-full p-2 rounded-xl border flex items-center justify-between mb-1.5 transition-all animate-in zoom-in duration-300 ${
+        color === 'blue' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-red-500/10 border-red-500/20'
       }`}>
         <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-lg overflow-hidden border ${team === 'A' ? 'border-blue-400' : 'border-red-400'}`}>
+          <div className={`w-8 h-8 rounded-lg overflow-hidden border-2 ${color === 'blue' ? 'border-blue-400' : 'border-red-400'}`}>
             <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
           </div>
-          <span className="font-black text-[9px] text-white/90">{player.name === 'أنت' ? 'أنت' : player.name}</span>
+          <div className="flex flex-col">
+            <span className="font-black text-[11px] text-white/90 leading-none">{player.id === 'you' ? 'أنت' : player.name}</span>
+            {player.isLeader && <span className="text-[8px] text-yellow-400 font-bold mt-0.5">القائد 👑</span>}
+          </div>
         </div>
         
-        {/* Only hide swap/menu for YOURSELF. Others should have menu even for members (limited) */}
         {player.id !== 'you' && (
-          <div className="relative">
-            <button 
-              onClick={() => setActiveMenu(activeMenu === player.id ? null : player.id)}
-              className="bg-white/5 hover:bg-white/10 w-7 h-7 flex items-center justify-center rounded-lg text-sm text-white/40 transition-colors"
-            >
-              ⋮
-            </button>
-
-            {activeMenu === player.id && (
-              <>
-                <div className="fixed inset-0 z-[70]" onClick={() => setActiveMenu(null)} />
-                <div className="absolute top-8 left-0 bg-[#1a1635] border border-white/10 rounded-xl shadow-2xl py-1.5 w-36 z-[80] animate-in fade-in zoom-in duration-150 origin-top-left overflow-hidden">
-                  <button 
-                    onClick={() => { showToast('تم كتم صوت اللاعب'); setActiveMenu(null); }}
-                    className="w-full text-right px-4 py-2 text-[9px] font-bold text-white/80 hover:bg-white/5 transition-colors border-b border-white/5"
-                  >
-                    كتم الصوت 🔇
-                  </button>
-                  
-                  {roomState.isLeader && (
-                    <>
-                      <button 
-                        onClick={() => handleKick(player.id)}
-                        className="w-full text-right px-4 py-2 text-[9px] font-bold text-red-400 hover:bg-white/5 transition-colors border-b border-white/5"
-                      >
-                        طرد اللاعب 🚪
-                      </button>
-                      <button 
-                        onClick={() => { movePlayerToTeam(player.id, team === 'A' ? 'B' : 'A'); setActiveMenu(null); }}
-                        className="w-full text-right px-4 py-2 text-[9px] font-bold text-blue-400 hover:bg-white/5 transition-colors border-b border-white/5"
-                      >
-                        نقل للفريق الثاني 🔄
-                      </button>
-                    </>
-                  )}
-
-                  <button 
-                    onClick={() => handleToggleFriend(player)}
-                    className="w-full text-right px-4 py-2 text-[9px] font-black text-yellow-400 hover:bg-white/5 transition-colors"
-                  >
-                    {isFriend ? 'إلغاء الصداقة ❌' : 'إضافة صديق +'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <button 
+            onClick={(e) => handleMenuClick(e, player, team)}
+            className="bg-white/5 hover:bg-white/10 w-8 h-8 flex items-center justify-center rounded-lg text-white/40 transition-colors"
+          >
+            ⋮
+          </button>
         )}
       </div>
     );
   };
 
-  const AddSlot = ({ team }) => {
+  const AddSlot = () => {
     if (!roomState.isLeader) return null;
     return (
       <button 
         onClick={() => setIsSidebarOpen(true)}
-        className="w-full h-10 border-2 border-dashed border-white/5 rounded-xl mb-1.5 flex items-center justify-center text-white/20 hover:text-white/40 hover:bg-white/5 transition-all group"
+        className="w-full h-11 border-2 border-dashed border-white/5 rounded-xl mb-1.5 flex items-center justify-center text-white/20 hover:text-white/40 hover:bg-white/5 transition-all group"
       >
-        <span className="text-lg group-hover:scale-125 transition-transform">+</span>
+        <span className="text-xl group-hover:scale-125 transition-transform">+</span>
       </button>
     );
   };
@@ -174,55 +169,103 @@ const PrivateRoomScreen = () => {
     <div className="absolute inset-0 bg-[#0d0b1f] text-white flex flex-col h-full overflow-hidden font-sans">
       <TopBar />
 
-      {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600 px-6 py-2 rounded-full shadow-2xl animate-in fade-in duration-300 font-bold text-[10px] whitespace-nowrap">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[110] bg-indigo-600 px-6 py-2 rounded-full shadow-2xl animate-in slide-in-from-top duration-300 font-bold text-[10px] whitespace-nowrap">
           {toast}
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Floating Dropdown Menu */}
+      {menuData && (
+        <>
+          <div className="fixed inset-0 z-[120]" onClick={() => setMenuData(null)} />
+          <div 
+            className="fixed z-[130] w-36 bg-[#1a1635] border border-white/10 rounded-xl shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-150 origin-top-right overflow-hidden"
+            style={{ top: menuData.y, left: menuData.x }}
+          >
+            <button 
+              onClick={() => { showToast('تم كتم صوت اللاعب'); setMenuData(null); }}
+              className="w-full text-right px-4 py-2.5 text-[10px] font-bold text-white/80 hover:bg-white/5 transition-colors border-b border-white/5"
+            >
+              كتم الصوت 🔇
+            </button>
+            
+            <button 
+              onClick={() => handleToggleFriend(menuData.player)}
+              className="w-full text-right px-4 py-2.5 text-[10px] font-black text-yellow-400 hover:bg-white/5 transition-colors border-b border-white/5"
+            >
+              {friends.some(f => f.name === menuData.player.name && f.isFriend) ? 'إلغاء الصداقة ❌' : 'إضافة صديق +'}
+            </button>
+
+            {roomState.isLeader && (
+              <>
+                {!isSolo && (
+                  <button 
+                    onClick={() => { movePlayerToTeam(menuData.player.id, menuData.team === 'A' ? 'B' : 'A'); setMenuData(null); }}
+                    className="w-full text-right px-4 py-2.5 text-[10px] font-bold text-blue-400 hover:bg-white/5 transition-colors border-b border-white/5"
+                  >
+                    نقل للفريق الثاني 🔄
+                  </button>
+                )}
+                <button 
+                  onClick={() => handleKick(menuData.player.id)}
+                  className="w-full text-right px-4 py-2.5 text-[10px] font-bold text-red-400 hover:bg-red-400/5 transition-colors"
+                >
+                  طرد اللاعب 🚪
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
       <div className="flex-1 flex flex-col px-4 pt-4 overflow-hidden">
-        {/* Header */}
         <div className="flex flex-col items-center mb-3">
           <div className="bg-yellow-500/20 border border-yellow-500/30 px-3 py-0.5 rounded-full mb-1 flex items-center gap-2">
-            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">إدارة الغرفة الخاصة 🏠</span>
+            <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">غرفة خاصة - {isSolo ? 'فردي' : 'تعاوني'} 🏠</span>
             <div className="w-px h-3 bg-yellow-500/30" />
             <span className="text-[9px] font-black text-white/60 tabular-nums">رمز الغرفة: {roomState.id}</span>
           </div>
         </div>
 
-        {/* Teams Layout */}
-        <div className="flex gap-3 mb-3">
-          {/* Team A */}
-          <div className="flex-1 flex flex-col">
+        {isSolo ? (
+          <div className="flex flex-col flex-1 mb-3">
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-blue-400 font-black text-xs">فريق A</span>
-              <span className="bg-blue-500/20 text-blue-400 text-[8px] px-2 py-0.5 rounded-md font-bold">{config.teamA.length}/4</span>
+              <span className="text-blue-400 font-black text-xs">قائمة اللاعبين</span>
+              <span className="bg-blue-500/20 text-blue-400 text-[8px] px-2 py-0.5 rounded-md font-bold">{allInRoom.length}/{MAX_PLAYERS}</span>
             </div>
-            <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-2 min-h-[100px] transition-all">
-              {config.teamA.map(p => <TeamSlot key={p.id} player={p} team="A" />)}
-              {config.teamA.length < 4 && <AddSlot team="A" />}
+            <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-2 min-h-[150px] overflow-y-auto scrollbar-hide">
+              {allInRoom.map(p => <PlayerSlot key={p.id} player={p} team="A" color="blue" />)}
+              {allInRoom.length < MAX_PLAYERS && <AddSlot />}
             </div>
           </div>
-
-          {/* Team B */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-red-400 font-black text-xs">فريق B</span>
-              <span className="bg-red-500/20 text-red-400 text-[8px] px-2 py-0.5 rounded-md font-bold">{config.teamB.length}/4</span>
+        ) : (
+          <div className="flex gap-3 mb-3">
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-blue-400 font-black text-xs">فريق A</span>
+                <span className="bg-blue-500/20 text-blue-400 text-[8px] px-2 py-0.5 rounded-md font-bold">{config.teamA.length}/{TEAM_MAX}</span>
+              </div>
+              <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-1.5 min-h-[100px] transition-all">
+                {config.teamA.map(p => <PlayerSlot key={p.id} player={p} team="A" color="blue" />)}
+                {config.teamA.length < TEAM_MAX && <AddSlot />}
+              </div>
             </div>
-            <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-2 min-h-[100px] transition-all">
-              {config.teamB.map(p => <TeamSlot key={p.id} player={p} team="B" />)}
-              {config.teamB.length < 4 && <AddSlot team="B" />}
+
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-red-400 font-black text-xs">فريق B</span>
+                <span className="bg-red-500/20 text-red-400 text-[8px] px-2 py-0.5 rounded-md font-bold">{config.teamB.length}/{TEAM_MAX}</span>
+              </div>
+              <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-1.5 min-h-[100px] transition-all">
+                {config.teamB.map(p => <PlayerSlot key={p.id} player={p} team="B" color="red" />)}
+                {config.teamB.length < TEAM_MAX && <AddSlot />}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Control Panel */}
         <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pb-4">
-          
-          {/* 1. Game Mode Card */}
           <div 
             onClick={() => roomState.isLeader && showScreen('modes')}
             className={`w-full bg-[#1a1635] border border-white/5 py-2.5 px-4 rounded-xl flex items-center justify-between group transition-all shadow-lg ${roomState.isLeader ? 'cursor-pointer active:scale-95' : 'opacity-80 cursor-default'}`}
@@ -237,7 +280,6 @@ const PrivateRoomScreen = () => {
             {roomState.isLeader && <div className="text-sm text-white/20 group-hover:text-blue-400 transition-colors">←</div>}
           </div>
 
-          {/* 3. Quick Actions Row (Sound & Chat) */}
           <div className="flex gap-2">
             <button 
               onClick={() => setIsChatOpen(!isChatOpen)}
@@ -269,14 +311,14 @@ const PrivateRoomScreen = () => {
         onClose={() => setIsChatOpen(false)}
       />
 
-      {/* Bottom Bar */}
       <div className="px-6 pb-6 pt-1 flex gap-3 flex-shrink-0">
         <button 
           onClick={() => {
             setRoomState(prev => ({ 
               ...prev, 
               isPrivateRoom: false,
-              privateRoomConfig: { teamA: [{ id: 'you', name: 'أنت', avatar: userProfile.avatar, isReady: true, isLeader: true }], teamB: [] }
+              players: [{ id: 'you', name: 'أنت', avatar: userProfile.avatar, isReady: true, isLeader: true }],
+              opponents: []
             }));
             showScreen('home');
           }}
