@@ -11,7 +11,7 @@ const LobbyScreen = () => {
     isGameSoundMuted, setIsGameSoundMuted,
     mutedPlayers, kickPlayer, toggleMutePlayer, transferLeadership, 
     addFriendToProfile, removeFriendFromProfile,
-    friends, setFriends 
+    friends, setFriends, createPrivateRoom
   } = useGame();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
@@ -19,6 +19,8 @@ const LobbyScreen = () => {
   const [showMatchOptions, setShowMatchOptions] = useState(false);
   const [matchConfig, setMatchConfig] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchTime, setSearchTime] = useState(0);
 
   const handleAction = (action, player) => {
     setActiveMenu(null);
@@ -55,19 +57,41 @@ const LobbyScreen = () => {
   };
 
   const handleStartGame = () => {
-    if (roomState.players.length < 2) {
-      showToast('لا يمكنك بدء اللعب بمفردك! ابحث عن خصوم أو ادعُ أصدقاءك');
-      return;
-    }
     const allReady = roomState.players.every(p => p.isReady);
     if (!allReady) {
       showToast('يجب أن يكون كل الأشخاص مستعدين!');
       return;
     }
-    showToast('جاري بدء اللعب...');
-    setTimeout(() => {
-      showScreen('game');
-    }, 1500);
+
+    if (roomState.isPrivateRoom) {
+      showToast('جاري بدء اللعبة الخاصة...');
+      setTimeout(() => {
+        showScreen('game');
+      }, 1500);
+    } else {
+      // بدء البحث عن خصوم
+      setIsSearching(true);
+      setSearchTime(0);
+      const timer = setInterval(() => {
+        setSearchTime(prev => prev + 1);
+      }, 1000);
+
+      // محاكاة إيجاد خصوم بعد 5 ثوانٍ
+      setTimeout(() => {
+        clearInterval(timer);
+        startSearch(roomState.players.length * 2); // البحث عن فريق بنفس العدد
+      }, 5000);
+    }
+  };
+
+  const handleCreateRoom = () => {
+    const success = createPrivateRoom();
+    if (success) {
+      showToast('تم إنشاء غرفة خاصة بنجاح (-100 نقطة)');
+      setTimeout(() => showScreen('private_room'), 1000);
+    } else {
+      showToast('⚠️ رصيدك غير كافٍ! تحتاج 100 نقطة');
+    }
   };
 
   const showToast = (msg) => {
@@ -158,14 +182,15 @@ const LobbyScreen = () => {
       )}
 
       {/* Players Section - Centered Cards */}
-      <div className="flex-1 px-6 flex items-center justify-center pb-4">
+      <div className="flex-1 px-6 flex flex-col items-center justify-center min-h-0">
+        
         {/* Compact Grid - Dynamic Columns based on player count */}
-        <div className={`grid ${roomState.players.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-3 w-full max-w-[230px]`}>
+        <div className={`grid ${roomState.players.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 w-full max-w-[210px]`}>
           {/* Active Players */}
           {roomState.players.slice(0, 4).map((player) => (
             <div 
               key={player.id}
-              className="relative aspect-square w-full bg-[#1a1635] rounded-[2rem] border border-white/10 flex flex-col items-center justify-center p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:border-white/20 transition-all duration-300"
+              className="relative aspect-square w-full bg-[#1a1635] rounded-[1.5rem] border border-white/10 flex flex-col items-center justify-center p-3 shadow-[0_15px_40px_rgba(0,0,0,0.5)] hover:border-white/20 transition-all duration-300"
             >
               {/* Leader Crown Overlay */}
               {player.isLeader && (
@@ -286,7 +311,7 @@ const LobbyScreen = () => {
       </div>
 
       {/* Bottom Control Panel - Pushed Down */}
-      <div className="px-6 pb-2 space-y-1 flex-shrink-0">
+      <div className="px-6 pb-4 space-y-1 flex-shrink-0">
         {/* Friends Bar */}
         <button 
           onClick={() => setSidebarOpen(true)}
@@ -334,27 +359,30 @@ const LobbyScreen = () => {
           </button>
         </div>
 
-        {/* Final Action Row - Balanced & Pushed Down */}
-        <div className="flex gap-3 pt-1">
-          <button 
-            onClick={handleSearchClick}
-            className="flex-1 bg-[#1a1635] border border-white/10 text-white h-11 rounded-xl flex items-center justify-center gap-2 group active:scale-95 transition-all"
-          >
-            <span className="font-black text-[11px] tracking-tight group-hover:text-blue-400">بحث عن خصوم</span>
-            <span className="text-blue-400 text-xs">🔍</span>
-          </button>
+        {/* Final Action Row - Full Width Ready/Start */}
+        <div className="flex w-full pt-1">
           {/* Ready / Start Button */}
           {roomState.players.find(p => p.id === 'you')?.isReady ? (
             <button 
               onClick={handleStartGame}
-              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white h-11 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all animate-in fade-in zoom-in duration-300"
+              disabled={isSearching}
+              className={`w-full ${isSearching ? 'bg-blue-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'} text-white h-12 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all relative overflow-hidden`}
             >
-              <span className="font-black text-base">بدء اللعب</span>
+              {isSearching ? (
+                <>
+                  <div className="absolute inset-0 bg-white/10 animate-pulse" />
+                  <span className="font-black text-sm relative z-10">
+                    جاري البحث... {Math.floor(searchTime / 60)}:{String(searchTime % 60).padStart(2, '0')}
+                  </span>
+                </>
+              ) : (
+                <span className="font-black text-base">بدء التحدي</span>
+              )}
             </button>
           ) : (
             <button 
               onClick={handleReady}
-              className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-950 h-11 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-950 h-12 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
             >
               <span className="font-black text-base">مستعد</span>
             </button>

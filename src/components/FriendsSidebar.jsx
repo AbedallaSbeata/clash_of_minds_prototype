@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 
 const FriendsSidebar = ({ isOpen, onClose }) => {
-  const { roomState, setRoomState, friends } = useGame();
+  const { roomState, setRoomState, friends, activeScreen, joinPrivateRoom } = useGame();
   const [toast, setToast] = useState(null);
   const [invitedIds, setInvitedIds] = useState([]);
 
@@ -11,7 +11,11 @@ const FriendsSidebar = ({ isOpen, onClose }) => {
   const handleInvite = (friend) => {
     if (invitedIds.includes(friend.id)) return;
     
-    if (roomState.players.length >= 4) {
+    const totalPlayers = activeScreen === 'private_room' 
+      ? roomState.privateRoomConfig.teamA.length + roomState.privateRoomConfig.teamB.length
+      : roomState.players.length;
+
+    if (totalPlayers >= 8) {
       setToast('اكتمل العدد! الغرفة ممتلئة');
       setTimeout(() => setToast(null), 2000);
       return;
@@ -23,20 +27,23 @@ const FriendsSidebar = ({ isOpen, onClose }) => {
       setToast(`✅ تم قبول الدعوة من ${friend.name}`);
       setInvitedIds(prev => [...prev, friend.id]);
       
-      setRoomState(prev => {
-        if (prev.players.find(p => p.id === friend.id)) return prev;
-        
-        return {
+      const newPlayer = { 
+        id: friend.id, 
+        name: friend.name, 
+        avatar: friend.avatar, 
+        isReady: true, 
+        isLeader: false 
+      };
+
+      if (activeScreen === 'private_room') {
+        const team = roomState.privateRoomConfig.teamA.length <= roomState.privateRoomConfig.teamB.length ? 'A' : 'B';
+        joinPrivateRoom(newPlayer, team);
+      } else {
+        setRoomState(prev => ({
           ...prev,
-          players: [...prev.players, { 
-            id: friend.id, 
-            name: friend.name, 
-            avatar: friend.avatar, 
-            isReady: false, 
-            isLeader: false 
-          }]
-        };
-      });
+          players: [...prev.players, newPlayer]
+        }));
+      }
 
       setTimeout(() => setToast(null), 2000);
     }, 1200);
@@ -113,7 +120,7 @@ const FriendsSidebar = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Dynamic Action Button: Check if in lobby */}
-                    {roomState.players.some(p => p.name === friend.name) ? (
+                    {([...roomState.players, ...roomState.privateRoomConfig.teamA, ...roomState.privateRoomConfig.teamB].some(p => p.name === friend.name)) ? (
                       <div className="w-8 h-8 rounded-xl bg-green-500/20 flex items-center justify-center text-green-500 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
                         ✓
                       </div>

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 const GameContext = createContext();
 
 export const GameProvider = ({ children }) => {
-  const [coins, setCoins] = useState(250);
+  const [coins, setCoins] = useState(100);
   const [activeScreen, setActiveScreen] = useState('splash');
   const [gameKey, setGameKey] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -52,7 +52,14 @@ export const GameProvider = ({ children }) => {
     players: [
       { id: 'you', name: 'أنت', avatar: 'https://i.pravatar.cc/150?u=you', isLeader: true, isReady: false }
     ],
-    isLeader: true
+    isLeader: true,
+    isPrivateRoom: false,
+    opponents: [],
+    privateRoomConfig: {
+      teamA: [], // Home Team
+      teamB: [], // Opponent Team
+      maxSize: 4 // Total players per team
+    }
   });
 
   // Action: Kick Player
@@ -99,6 +106,81 @@ export const GameProvider = ({ children }) => {
     setFriends(prev => prev.filter(f => f.name !== playerName));
   };
 
+  // Action: Create Private Room
+  const createPrivateRoom = () => {
+    if (coins < 100) return false;
+    
+    setCoins(prev => prev - 100);
+    setUserProfile(prev => ({
+      ...prev,
+      stats: { ...prev.stats, coins: prev.stats.coins - 100 }
+    }));
+    
+    setRoomState(prev => {
+      const you = prev.players.find(p => p.id === 'you');
+      const leaderYou = { ...you, isLeader: true, isReady: true };
+      
+      return {
+        ...prev,
+        isPrivateRoom: true,
+        isLeader: true, // Creator is always the leader
+        players: [leaderYou],
+        privateRoomConfig: {
+          teamA: [leaderYou],
+          teamB: [],
+          maxSize: 4
+        },
+        opponents: []
+      };
+    });
+    
+    return true;
+  };
+
+  // Action: Move player in private room
+  const movePlayerToTeam = (playerId, team) => {
+    setRoomState(prev => {
+      const player = [...prev.privateRoomConfig.teamA, ...prev.privateRoomConfig.teamB].find(p => p.id === playerId);
+      if (!player) return prev;
+
+      const newTeamA = team === 'A' 
+        ? [...prev.privateRoomConfig.teamA, player] 
+        : prev.privateRoomConfig.teamA.filter(p => p.id !== playerId);
+      
+      const newTeamB = team === 'B' 
+        ? [...prev.privateRoomConfig.teamB, player] 
+        : prev.privateRoomConfig.teamB.filter(p => p.id !== playerId);
+
+      return {
+        ...prev,
+        privateRoomConfig: {
+          ...prev.privateRoomConfig,
+          teamA: newTeamA,
+          teamB: newTeamB
+        }
+      };
+    });
+  };
+
+  // Action: Join Private Room (via invitation)
+  const joinPrivateRoom = (player, team = 'A') => {
+    setRoomState(prev => {
+      if (prev.privateRoomConfig.teamA.length + prev.privateRoomConfig.teamB.length >= 8) return prev;
+      
+      const newTeamA = team === 'A' ? [...prev.privateRoomConfig.teamA, player] : prev.privateRoomConfig.teamA;
+      const newTeamB = team === 'B' ? [...prev.privateRoomConfig.teamB, player] : prev.privateRoomConfig.teamB;
+
+      return {
+        ...prev,
+        privateRoomConfig: {
+          ...prev.privateRoomConfig,
+          teamA: newTeamA,
+          teamB: newTeamB
+        }
+      };
+    });
+  };
+
   const showScreen = (screenId) => setActiveScreen(screenId);
 
   const restartGame = () => {
@@ -129,7 +211,10 @@ export const GameProvider = ({ children }) => {
       friends,
       setFriends,
       addFriendToProfile,
-      removeFriendFromProfile
+      removeFriendFromProfile,
+      createPrivateRoom,
+      movePlayerToTeam,
+      joinPrivateRoom
     }}>
       {children}
     </GameContext.Provider>

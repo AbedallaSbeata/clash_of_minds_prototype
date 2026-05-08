@@ -2,16 +2,58 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 
 const ProfileScreen = () => {
-  const { userProfile, updateProfile, showScreen, addFriendToProfile, friends } = useGame();
+  const { userProfile, updateProfile, showScreen, addFriendToProfile, friends, coins, createPrivateRoom, setRoomState } = useGame();
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(userProfile.name);
   const [tempAvatar, setTempAvatar] = useState(userProfile.avatar);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchedUser, setSearchedUser] = useState(null);
+  const [roomCode, setRoomCode] = useState('');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleSave = () => {
     updateProfile({ name: tempName, avatar: tempAvatar });
     setIsEditing(false);
+  };
+
+  const handleCreatePrivate = () => {
+    const success = createPrivateRoom();
+    if (success) {
+      showToast('✅ تم إنشاء غرفة خاصة بنجاح (-100 نقطة)');
+      setTimeout(() => showScreen('private_room'), 1000);
+    } else {
+      showToast('⚠️ رصيدك غير كافٍ! تحتاج 100 نقطة');
+    }
+  };
+
+  const handleJoinPrivate = () => {
+    if (!roomCode.trim()) {
+      showToast('⚠️ يرجى إدخال رمز الغرفة');
+      return;
+    }
+    showToast('جاري الانضمام للغرفة...');
+    
+    // Simulate joining an existing room after a short delay
+    setTimeout(() => {
+      setRoomState(prev => ({
+        ...prev,
+        isPrivateRoom: true,
+        isLeader: false, // You are NOT the leader when joining
+        privateRoomConfig: {
+          teamA: [
+            { id: 'leader_123', name: 'صاحب الغرفة', avatar: 'https://i.pravatar.cc/150?u=admin', isReady: true, isLeader: true },
+            { id: 'you', name: 'أنت', avatar: userProfile.avatar, isReady: true, isLeader: false }
+          ],
+          teamB: []
+        }
+      }));
+      showScreen('private_room');
+    }, 1000);
   };
 
   const handleSearch = (e) => {
@@ -42,7 +84,13 @@ const ProfileScreen = () => {
   return (
     <div className="absolute inset-0 bg-[#0d0b1f] text-white flex flex-col overflow-y-auto animate-in slide-in-from-bottom duration-500 font-sans scrollbar-hide pb-20">
       {/* Header with Glassmorphism */}
-      <div className="sticky top-0 z-50 bg-[#0d0b1f]/80 backdrop-blur-xl border-b border-white/10 p-6 flex items-center justify-between">
+      <div className="sticky top-0 z-[60] bg-[#0d0b1f]/80 backdrop-blur-xl border-b border-white/10 p-6 flex items-center justify-between">
+        {/* Toast Notification */}
+        {toast && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-blue-600 px-6 py-2 rounded-full shadow-2xl animate-in slide-in-from-top duration-300 font-bold text-[10px] whitespace-nowrap">
+            {toast}
+          </div>
+        )}
         <button 
           onClick={() => {
             if (searchedUser) setSearchedUser(null);
@@ -189,6 +237,7 @@ const ProfileScreen = () => {
               </div>
             </div>
 
+
             {/* Achievements Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-black px-2 flex items-center gap-2">
@@ -217,6 +266,58 @@ const ProfileScreen = () => {
               
               <LuckyWheel />
             </div>
+
+            {/* Private Room Actions - NEW SECTION */}
+            {!searchedUser && (
+              <div className="space-y-4 pb-10">
+                <h3 className="text-lg font-black px-2 flex items-center gap-2">
+                  <span>🏠</span> الغرف الخاصة
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  {/* Create Room Button */}
+                  <button 
+                    onClick={handleCreatePrivate}
+                    className="group bg-gradient-to-r from-indigo-600 to-purple-700 border border-indigo-400/30 p-5 rounded-3xl flex items-center justify-between shadow-xl active:scale-95 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🏠</div>
+                      <div className="text-right">
+                        <div className="font-black text-sm text-white">إنشاء غرفة خاصة</div>
+                        <div className="text-[10px] text-white/60 font-bold">التكلفة: 100 نقطة</div>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/40 group-hover:text-white">+</div>
+                  </button>
+
+                  {/* Join Room Section */}
+                  <div className="bg-[#1a1635] border border-white/5 p-5 rounded-3xl space-y-4 shadow-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-2xl">🔑</div>
+                      <div className="text-right">
+                        <div className="font-black text-sm text-white">الانضمام لغرفة</div>
+                        <div className="text-[10px] text-white/30 font-bold">أدخل رمز الغرفة للمشاركة</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-stretch">
+                      <input 
+                        type="text"
+                        placeholder="أدخل الرمز..."
+                        value={roomCode}
+                        onChange={(e) => setRoomCode(e.target.value)}
+                        className="flex-[2] h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-[11px] font-bold focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-white/20"
+                      />
+                      <button 
+                        onClick={handleJoinPrivate}
+                        className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[11px] active:scale-95 transition-all shadow-lg shadow-indigo-600/20 whitespace-nowrap px-2"
+                      >
+                        انضمام
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

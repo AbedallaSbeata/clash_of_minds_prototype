@@ -12,7 +12,7 @@ const randomOpponents = [
 ];
 
 const SearchingScreen = ({ mode, modeName, teamSize, opponentSize, onCancel }) => {
-  const { roomState, setRoomState } = useGame();
+  const { roomState, setRoomState, showScreen } = useGame();
   const [dots, setDots] = useState('');
   const [foundPlayers, setFoundPlayers] = useState([]);
 
@@ -42,13 +42,13 @@ const SearchingScreen = ({ mode, modeName, teamSize, opponentSize, onCancel }) =
       // عرض اللاعبين الذين تم العثور عليهم
       setFoundPlayers(newPlayers);
 
-      // انتظار ثانية ونصف قبل العودة للوبي لإظهار النتيجة
+      // انتظار ثانية ونصف قبل بدء اللعبة
       setTimeout(() => {
         setRoomState(prev => ({
           ...prev,
-          players: [...prev.players, ...newPlayers]
+          opponents: newPlayers
         }));
-        onCancel(); // إغلاق شاشة البحث والعودة للوبي
+        showScreen('game');
       }, 1500);
 
     }, 3000);
@@ -76,40 +76,47 @@ const SearchingScreen = ({ mode, modeName, teamSize, opponentSize, onCancel }) =
         </div>
       </div>
 
-      {/* Matching visualization - FFA Style */}
-      <div className="flex flex-wrap items-center justify-center gap-3 mb-16 px-2 w-full max-w-[350px]">
-        {allPlayers.map((player, index) => (
-          <React.Fragment key={index}>
-            {/* Player / Opponent Avatar */}
-            <div className="flex flex-col items-center gap-2">
-              {player.type === 'player' ? (
-                <div 
-                  className="w-14 h-14 rounded-2xl bg-blue-600 border-2 border-white/10 overflow-hidden shadow-xl animate-bounce" 
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <img src={player.data.avatar} alt={player.data.name} className="w-full h-full object-cover" />
+      {/* Matching visualization - Team vs Team Style */}
+      <div className="flex flex-col items-center gap-8 mb-16 w-full max-w-[400px]">
+        {/* Your Team */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {roomState.players.map((p, i) => (
+            <div key={p.id} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 border-2 border-white/10 overflow-hidden shadow-xl animate-bounce" style={{ animationDelay: `${i * 0.1}s` }}>
+                <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[10px] font-bold text-blue-400">{p.id === 'you' ? 'أنت' : p.name}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* VS Divider */}
+        <div className="w-12 h-12 rounded-full bg-red-500 border-4 border-[#0d0b1f] flex items-center justify-center text-white font-black italic text-sm shadow-[0_0_20px_rgba(239,68,68,0.5)] z-10 shrink-0 animate-pulse">
+          VS
+        </div>
+
+        {/* Opponent Team */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {foundPlayers.length > 0 ? (
+            foundPlayers.map((p, i) => (
+              <div key={p.id} className="flex flex-col items-center gap-2">
+                <div className="w-14 h-14 rounded-2xl bg-red-600 border-2 border-white/10 overflow-hidden shadow-xl animate-bounce" style={{ animationDelay: `${i * 0.1}s` }}>
+                  <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
                 </div>
-              ) : (
-                <div 
-                  className="w-14 h-14 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center text-2xl text-white/20 animate-pulse" 
-                  style={{ animationDelay: `${index * 0.2}s` }}
-                >
+                <span className="text-[10px] font-bold text-red-400">{p.name}</span>
+              </div>
+            ))
+          ) : (
+            Array(opponentSize).fill(0).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <div className="w-14 h-14 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center text-2xl text-white/20 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}>
                   ?
                 </div>
-              )}
-              <span className={`text-[10px] font-bold ${player.type === 'player' ? 'text-blue-400' : 'text-white/30'}`}>
-                {player.type === 'player' ? (player.data.id === 'you' ? 'أنت' : player.data.name) : 'يبحث...'}
-              </span>
-            </div>
-
-            {/* VS Divider (except for last item) */}
-            {index < allPlayers.length - 1 && (
-              <div className="w-6 h-6 rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-500 font-black italic text-[8px] shadow-[0_0_10px_rgba(239,68,68,0.3)] z-10 shrink-0">
-                VS
+                <span className="text-[10px] font-bold text-white/30">يبحث...</span>
               </div>
-            )}
-          </React.Fragment>
-        ))}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Cancel Button */}

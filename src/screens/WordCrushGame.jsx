@@ -24,12 +24,11 @@ const puzzles = [
 ];
 
 const WordCrushGame = () => {
-  const { roomState, showScreen, isGameSoundMuted } = useGame();
+  const { roomState, showScreen, isGameSoundMuted, coins, addCoins } = useGame();
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
   const [scores, setScores] = useState(
-    roomState.players.reduce((acc, p) => ({ ...acc, [p.id]: 0 }), {})
+    [...roomState.players, ...(roomState.opponents || [])].reduce((acc, p) => ({ ...acc, [p.id]: 0 }), {})
   );
-  const [coins, setCoins] = useState(100); // Default balance
   const [currentPuzzle, setCurrentPuzzle] = useState(0);
   const [foundWords, setFoundWords] = useState([]);
   const [selectedLetters, setSelectedLetters] = useState([]);
@@ -97,9 +96,9 @@ const WordCrushGame = () => {
   // Simulate other players scoring
   useEffect(() => {
     const interval = setInterval(() => {
-      const otherPlayers = roomState.players.filter(p => p.id !== 'you');
-      if (otherPlayers.length > 0 && Math.random() > 0.5) {
-        const randomPlayer = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+      const others = [...roomState.players.filter(p => p.id !== 'you'), ...(roomState.opponents || [])];
+      if (others.length > 0 && Math.random() > 0.5) {
+        const randomPlayer = others[Math.floor(Math.random() * others.length)];
         const puzzle = puzzles[currentPuzzle];
         const remainingWords = puzzle.words.filter(w => !foundWords.includes(w));
         
@@ -119,7 +118,7 @@ const WordCrushGame = () => {
       }
     }, 2500); 
     return () => clearInterval(interval);
-  }, [roomState.players, currentPuzzle, foundWords]);
+  }, [roomState.players, roomState.opponents, currentPuzzle, foundWords]);
 
   const handleLetterClick = (char, rIdx, cIdx) => {
     playSFX('click');
@@ -156,6 +155,8 @@ const WordCrushGame = () => {
       showToast('لا يوجد لديك رصيد كافي ⚠️');
       return;
     }
+
+    addCoins(-10);
 
     const puzzle = puzzles[currentPuzzle];
     const remainingWords = puzzle.words.filter(w => !foundWords.includes(w));
@@ -220,24 +221,58 @@ const WordCrushGame = () => {
     <div className="absolute inset-0 bg-gradient-to-b from-[#005a5a] to-[#003333] text-white flex flex-col overflow-hidden animate-in fade-in duration-500 font-sans">
       {/* Top Bar - Refined Leaderboard */}
       <div className="px-4 pt-10 pb-3 flex items-center justify-between z-30 bg-black/20 backdrop-blur-md border-b border-white/10 shadow-lg">
-        {/* Players Section - Closer together */}
-        <div className="flex gap-2.5">
-          {sortedPlayers.map((player) => (
-            <div key={player.id} className="flex flex-col items-center gap-0.5 transition-all hover:scale-105">
-              <span className={`text-[8px] font-black uppercase tracking-tighter ${player.id === 'you' ? 'text-yellow-400 animate-pulse' : 'text-white/40'}`}>
-                {player.id === 'you' ? 'أنت' : player.name}
-              </span>
-              <div className="relative">
-                <div className={`w-9 h-9 rounded-full border-2 border-white/20 overflow-hidden shadow-lg ${player.id === 'you' ? 'bg-blue-600' : 'bg-purple-600'}`}>
-                  <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+        {/* Players Section - Team vs Team visualization */}
+        {(() => {
+          const teamAScore = roomState.players.reduce((sum, p) => sum + (scores[p.id] || 0), 0);
+          const teamBScore = (roomState.opponents || []).reduce((sum, p) => sum + (scores[p.id] || 0), 0);
+          
+          return (
+            <div className="flex items-center gap-2">
+              {/* Team A Block */}
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[10px] font-black text-blue-400 leading-none">{teamAScore}</span>
+                <div className="grid grid-cols-2 gap-0.5 bg-blue-500/10 p-1 rounded-xl border border-blue-500/20">
+                  {roomState.players.map((player) => (
+                    <div key={player.id} className="flex flex-col items-center">
+                      <div className="relative">
+                        <div className={`w-7 h-7 rounded-full border border-blue-400 overflow-hidden shadow-sm`}>
+                          <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 bg-yellow-400 text-[#000] text-[6px] font-black px-0.5 rounded-full border border-white">
+                          {scores[player.id]}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-[#000] text-[8px] font-black px-1.5 rounded-full border border-white shadow-sm">
-                  {scores[player.id]}
+              </div>
+
+              <div className="text-white/20 font-black italic text-[8px] mt-3">VS</div>
+
+              {/* Team B Block */}
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[10px] font-black text-red-400 leading-none">{teamBScore}</span>
+                <div className="grid grid-cols-2 gap-0.5 bg-red-500/10 p-1 rounded-xl border border-red-500/20">
+                  {(roomState.opponents || []).map((player) => (
+                    <div key={player.id} className="flex flex-col items-center">
+                      <div className="relative">
+                        <div className={`w-7 h-7 rounded-full border border-red-400 overflow-hidden shadow-sm`}>
+                          <img src={player.avatar} alt={player.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 bg-yellow-400 text-[#000] text-[6px] font-black px-0.5 rounded-full border border-white">
+                          {scores[player.id]}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(roomState.opponents || []).length === 0 && (
+                    <div className="text-[8px] text-red-400/50 px-2">في انتظار الخصوم...</div>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* Right Section - Coins ABOVE Timer */}
         <div className="flex flex-col items-end gap-1.5">
@@ -256,10 +291,10 @@ const WordCrushGame = () => {
       </div>
 
       {/* 1. Hint Image Area - Smaller to save space */}
-      <div className="h-[22%] flex flex-col items-center justify-center p-2">
+      <div className="h-[18%] flex flex-col items-center justify-center p-2">
         <div className="relative h-full aspect-square bg-[#002b2b]/40 rounded-2xl border-4 border-white/10 shadow-2xl overflow-hidden flex items-center justify-center group">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-          <span className="text-6xl group-hover:scale-110 transition-transform duration-500">
+          <span className="text-5xl group-hover:scale-110 transition-transform duration-500">
             {currentPuzzle === 0 ? '💉' : '☀️'}
           </span>
         </div>
@@ -300,7 +335,7 @@ const WordCrushGame = () => {
       </div>
 
       {/* 3. The Colorful Grid - Tight & Smaller */}
-      <div className="px-4 flex-1 flex flex-col items-center justify-start mt-2 mb-14">
+      <div className="px-4 flex-1 flex flex-col items-center justify-center mb-16">
         <div className="grid grid-cols-4 gap-0 max-w-[220px] mx-auto border-2 border-white/10 rounded-xl overflow-hidden shadow-2xl">
           {puzzles[currentPuzzle].grid.map((row, rIdx) => 
             row.map((char, cIdx) => {
@@ -334,7 +369,7 @@ const WordCrushGame = () => {
       </div>
 
       {/* Footer - Hint Button - Lowered and showing price 10 */}
-      <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center z-40 pointer-events-none">
+      <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center z-40 pointer-events-none">
         <button 
           onClick={handleHint}
           className="pointer-events-auto group h-11 px-7 bg-white rounded-full flex items-center gap-3 shadow-[0_4px_0_#ccc] active:shadow-none active:translate-y-1 transition-all"

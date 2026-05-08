@@ -5,6 +5,7 @@ import LobbyScreen from './screens/LobbyScreen';
 import ModesScreen from './screens/ModesScreen';
 import WordCrushGame from './screens/WordCrushGame';
 import ProfileScreen from './screens/ProfileScreen';
+import PrivateRoomScreen from './screens/PrivateRoomScreen';
 import MobileWrapper from './components/MobileWrapper';
 
 const BackgroundMusic = () => {
@@ -71,6 +72,7 @@ const AppContent = () => {
       {activeScreen === 'modes' && <ModesScreen />}
       {activeScreen === 'game' && <WordCrushGame key={gameKey} />}
       {activeScreen === 'profile' && <ProfileScreen />}
+      {activeScreen === 'private_room' && <PrivateRoomScreen />}
     </div>
   );
 };
